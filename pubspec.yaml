@@ -1,0 +1,97 @@
+name: muslim_daily
+description: A new Flutter project.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  hijri: ^3.0.0
+  table_calendar: ^3.0.0
+  timezone: ^0.10.0
+  flutter_timezone: ^4.1.1
+  flutter_qiblah: ^3.1.0+1
+  geolocator: ^13.0.4
+  permission_handler: ^11.3.0
+  sensors_plus: ^4.0.1
+  url_launcher: ^6.2.6
+  google_maps_flutter: ^2.5.0
+  http: ^1.2.1
+  shared_preferences: ^2.0.13
+  intl: ^0.20.2
+  adhan: ^2.0.0
+  csv: ^5.0.0
+  flutter_typeahead: ^5.2.0
+  awesome_notifications: ^0.10.1
+  google_fonts: ^4.0.3
+  provider: ^6.0.0
+
+
+  # Use local version of flutter_native_timezone with namespace fix
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/appicon.png"
+
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/img.png
+    - assets/worldcities.json
+    - assets/females_en.json
+    - assets/males_en.json
+    - assets/duas.json
+    - assets/appicon.png
+    - assets/home.png
+    - assets/calender.png
+    - assets/prayer.png
+    - assets/settings.png
+    - assets/prayercard.png
+    - assets/qibla.png
+    - assets/book.png
+    - assets/names.png
+    - assets/zakat.png
+    - assets/Tracker.png
+    - assets/Tasbeeh.png
+    - assets/Dua.png
+    - assets/Mosques.png
+    - assets/calender_bg.png
+    - assets/compass.png
+    - assets/background.png
+    - assets/fajr.png
+    - assets/sunrise.png
+    - assets/dhuhr.png
+    - assets/asr.png
+    - assets/maghrib.png
+    - assets/isha.png
+    - assets/islamicmosque.png
+    - assets/boy.png
+    - assets/girl.png
+    - assets/splash.png
+    - assets/zakatbusiness.png
+    - assets/zakatgold.png
+    - assets/zakatcash.png
+    - assets/zakatinvestment.png
+    - assets/zakatsilver.png
+    - assets/zakatrecievable.png
+    - assets/zakatnisab.png
+    - assets/zakatliability.png
+
+
+
+
