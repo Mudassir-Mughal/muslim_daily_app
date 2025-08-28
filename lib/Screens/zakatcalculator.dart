@@ -122,7 +122,7 @@ class _ZakatCalculatorScreenState extends State<ZakatCalculatorScreen> {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          color: Color(0xFFc8e6c9),
+          color: Colors.white,
         ),
         child: Column(
           children: [
@@ -151,7 +151,7 @@ class _ZakatCalculatorScreenState extends State<ZakatCalculatorScreen> {
                         style: GoogleFonts.poppins(
                           fontSize: 17,
                           color: Colors.green[900],
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -219,13 +219,13 @@ class _ZakatCalculatorScreenState extends State<ZakatCalculatorScreen> {
                     const SizedBox(height: 18),
                     // Liabilities & Nisab Title (outside card)
                     Padding(
-                      padding: const EdgeInsets.only(left: 4, bottom: 2, top: 6),
+                      padding: const EdgeInsets.only(left: 4, bottom: 2, top: 2),
                       child: Text(
                         "Liabilities & Nisab",
                         style: GoogleFonts.poppins(
                           fontSize: 17,
                           color: Colors.green[900],
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -260,25 +260,35 @@ class _ZakatCalculatorScreenState extends State<ZakatCalculatorScreen> {
                     ),
                     const SizedBox(height: 20),
                     // Zakat Button & Result as before
-                    ElevatedButton.icon(
-                      onPressed: calculateZakat,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF158443),
-                        foregroundColor: Colors.white,
-                        elevation: 3,
-                        minimumSize: const Size(0, 55),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF158443),
+                            foregroundColor: Colors.white,
+                            elevation: 3,
+                            minimumSize: const Size(0, 55),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            shadowColor: const Color(0xFFA2C96F),
+                          ),
+                          icon: Icon(Icons.calculate, color: Colors.white, size: 24), // Place icon here
+                          onPressed: calculateZakat, // <-- Assign your function here
+                          label: Text(
+                            "Calculate Zakat",
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 18,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                        shadowColor: const Color(0xFFA2C96F),
-                      ),
-                      icon: Icon(Icons.calculate, color: Colors.white, size: 30),  // Increased icon size
-                      label: Text(
-                        "Calculate Zakat",
-                        style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w600, color: Colors.white), // Increased text size
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height:12),
                     if (calculated)
                       Card(
                         elevation: 5,
@@ -298,7 +308,7 @@ class _ZakatCalculatorScreenState extends State<ZakatCalculatorScreen> {
                                 ),
                                 textAlign: TextAlign.center,
                               ),
-                              const SizedBox(height: 14),
+                              const SizedBox(height: 6),
                               Text(
                                 "Net Wealth: PKR ${netWealth.toStringAsFixed(2)}",
                                 style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.bold),
@@ -313,12 +323,12 @@ class _ZakatCalculatorScreenState extends State<ZakatCalculatorScreen> {
                               zakatAmount > 0
                                   ? Column(
                                 children: [
-                                  const Icon(Icons.check_circle, color: Colors.green, size: 35),
+                                  const Icon(Icons.check_circle, color: Colors.green, size: 30),
                                   const SizedBox(height: 6),
                                   Text(
                                     "Zakat Due: PKR ${zakatAmount.toStringAsFixed(2)}",
                                     style: GoogleFonts.poppins(
-                                        fontSize: 22,
+                                        fontSize: 18,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.green),
                                     textAlign: TextAlign.center,

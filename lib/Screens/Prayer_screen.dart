@@ -13,7 +13,10 @@ import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
+
+import '../Services/prayerprovider.dart';
 import 'NamazTrackerScreen.dart';
 
 class PrayerTimesScreen extends StatefulWidget {
@@ -73,18 +76,33 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
         _loadReminderLocation(),
       ]);
       await _loadCities();
-      await _refreshPrayerTimes();
+      // --- CHANGED: Use Provider for prayer times
+      final provider = Provider.of<PrayerProvider>(context, listen: false);
+      if (_selectedCity != null) {
+        provider.setLocation(_selectedCity!['lat'], _selectedCity!['lng']);
+        await provider.fetchPrayers();
+      } else if (_reminderLat != null && _reminderLng != null) {
+        provider.setLocation(_reminderLat!, _reminderLng!);
+        await provider.fetchPrayers();
+      }
+      setState(() {
+        _loading = false;
+      });
     });
   }
 
   Future<void> _refreshPrayerTimes() async {
+    final provider = Provider.of<PrayerProvider>(context, listen: false);
     if (_selectedCity != null) {
-      await _calculatePrayerTimes(_selectedCity!['lat'], _selectedCity!['lng']);
+      provider.setLocation(_selectedCity!['lat'], _selectedCity!['lng']);
+      await provider.fetchPrayers();
     } else if (_reminderLat != null && _reminderLng != null) {
-      await _calculatePrayerTimes(_reminderLat!, _reminderLng!);
+      provider.setLocation(_reminderLat!, _reminderLng!);
+      await provider.fetchPrayers();
     } else {
       await _getPrayerTimesFromLocation();
     }
+    setState(() {});
   }
 
   Future<void> _requestNotificationPermission() async {
@@ -113,6 +131,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
     return data.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e)).toList();
   }
 
+  // --- NO CHANGE: This timezone/notification logic remains as is, not replaced by provider
   Future<Map<String, dynamic>?> _getTimeZoneDB(double lat, double lng) async {
     try {
       final tzResponse = await http.get(Uri.parse(
@@ -152,7 +171,10 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
-      await _calculatePrayerTimes(position.latitude, position.longitude);
+      final provider = Provider.of<PrayerProvider>(context, listen: false);
+      provider.setLocation(position.latitude, position.longitude);
+      await provider.fetchPrayers();
+      setState(() => _loading = false);
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
@@ -262,6 +284,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
     await AwesomeNotifications().cancelAll();
   }
 
+  // Not used for display anymore, but for notification scheduling
   Future<void> _calculatePrayerTimes(double lat, double lng) async {
     setState(() {
       _loading = true;
@@ -494,6 +517,11 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
       },
     ];
 
+    // --- CHANGED: Use provider for display
+    final provider = Provider.of<PrayerProvider>(context);
+    final showLoading = _loading || provider.loading;
+    final providerPrayers = provider.prayerTimes;
+
     return Scaffold(
       backgroundColor: Color(0xFFF8F9FC),
       body: Stack(
@@ -576,7 +604,9 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                         _selectedCity = suggestion;
                       });
                       await _saveSelectedCity(suggestion);
-                      await _calculatePrayerTimes(suggestion['lat'], suggestion['lng']);
+                      final provider = Provider.of<PrayerProvider>(context, listen: false);
+                      provider.setLocation(suggestion['lat'], suggestion['lng']);
+                      await provider.fetchPrayers();
                       if (_notificationSwitch) {
                         await _onEnableReminders();
                       }
@@ -642,20 +672,30 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                 _zoneRow(width),
                 SizedBox(height: height * 0.001),
                 Expanded(
-                  child: _loading
+                  child: showLoading
                       ? Center(child: CircularProgressIndicator())
+                      : providerPrayers == null
+                      ? Center(
+                    child: Text(
+                      "Please set your location to view prayer times.",
+                      style: TextStyle(color: Colors.orange[900]),
+                    ),
+                  )
                       : ListView(
                     padding: EdgeInsets.only(top: 0, bottom: height * 0.012),
                     children: prayerInfo
-                        .where((info) => _prayerTimes.containsKey(info['name']))
-                        .map((info) => _buildPrayerRow(
-                      info['name'] as String,
-                      (_prayerTimes[info['name']]?.toString() ?? '--'),
-                      info['icon'] as String,
-                      info['color'] as Color,
-                      fontSize,
-                      width * 0.058,
-                    ))
+                        .where((info) => providerPrayers.any((p) => p.name == info['name']))
+                        .map((info) {
+                      final p = providerPrayers.firstWhere((p) => p.name == info['name']);
+                      return _buildPrayerRow(
+                        info['name'] as String,
+                        DateFormat('h:mm a').format(p.time),
+                        info['icon'] as String,
+                        info['color'] as Color,
+                        fontSize,
+                        width * 0.058,
+                      );
+                    })
                         .toList(),
                   ),
                 ),

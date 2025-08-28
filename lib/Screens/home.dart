@@ -11,6 +11,10 @@ import 'package:muslim_daily/Screens/qibla.dart';
 import 'package:muslim_daily/Screens/settings.dart';
 import 'package:muslim_daily/Screens/tasbeeh.dart';
 import 'package:muslim_daily/Screens/zakatcalculator.dart';
+import 'package:provider/provider.dart';
+
+import '../Services/prayerprovider.dart';
+
 
 // Helper to convert TimeOfDay to DateTime for mock/demo
 extension TimeOfDayExtension on TimeOfDay {
@@ -33,6 +37,11 @@ class _HomePageState extends State<HomePage> {
   late Duration countdown;
   Timer? _timer;
 
+  // Provider fields
+  String? providerPrayerName;
+  DateTime? providerPrayerTime;
+  Duration? providerCountdown;
+
   @override
   void initState() {
     super.initState();
@@ -46,6 +55,18 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       countdown = nextPrayerTime.difference(DateTime.now());
       if (countdown.isNegative) countdown = Duration.zero;
+
+      // Provider logic (do not change any widget, just get the data)
+      final provider = Provider.of<PrayerProvider>(context, listen: false);
+      if (provider.prayerTimes != null && provider.prayerTimes!.isNotEmpty) {
+        final next = provider.getNextPrayer();
+        if (next != null && next['name'] != null && next['time'] != null) {
+          providerPrayerName = next['name'];
+          providerPrayerTime = next['time'];
+          providerCountdown = next['time'].difference(DateTime.now());
+          if (providerCountdown!.isNegative) providerCountdown = Duration.zero;
+        }
+      }
     });
   }
 
@@ -65,8 +86,26 @@ class _HomePageState extends State<HomePage> {
     final w = MediaQuery.of(context).size.width;
     final now = DateTime.now();
     final dateStr = DateFormat('EEE, d MMM').format(now);
-    final timeText = DateFormat('h:mm').format(prayerTime);
-    final ampm = DateFormat('a').format(prayerTime);
+
+    // Provider logic for real-time card (do not change design, just use provider)
+    final provider = Provider.of<PrayerProvider>(context);
+    String showPrayerName = prayerName;
+    DateTime showPrayerTime = prayerTime;
+    String showTimeText = DateFormat('h:mm').format(prayerTime);
+    String showAmpm = DateFormat('a').format(prayerTime);
+    Duration showCountdown = countdown;
+
+    if (provider.prayerTimes != null && provider.prayerTimes!.isNotEmpty) {
+      final next = provider.getNextPrayer();
+      if (next != null && next['name'] != null && next['time'] != null) {
+        showPrayerName = next['name'];
+        showPrayerTime = next['time'];
+        showTimeText = DateFormat('h:mm').format(showPrayerTime);
+        showAmpm = DateFormat('a').format(showPrayerTime);
+        showCountdown = next['time'].difference(DateTime.now());
+        if (showCountdown.isNegative) showCountdown = Duration.zero;
+      }
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -148,7 +187,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 child: Stack(
                   children: [
-                    // BG image
+                    // Background image
                     ClipRRect(
                       borderRadius: BorderRadius.circular(23),
                       child: Image.asset(
@@ -158,36 +197,39 @@ class _HomePageState extends State<HomePage> {
                         fit: BoxFit.cover,
                       ),
                     ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: w * 0.07,
-                        vertical: w * 0.06,
+                    // Date (top left)
+                    Positioned(
+                      top: 14, left: 18,
+                      child: Text(
+                        dateStr,
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w400,
+                          fontSize: w * 0.036,
+                        ),
                       ),
+                    ),
+                    // Centered prayer info
+                    Center(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Text(
-                            dateStr,
+                            showPrayerName,
                             style: GoogleFonts.poppins(
                               color: Colors.white,
-                              fontWeight: FontWeight.w400,
-                              fontSize: w * 0.036,
-                            ),
-                          ),
-                          SizedBox(height: w * 0.01),
-                          Text(
-                            prayerName,
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w500,
                               fontSize: w * 0.056,
                             ),
                           ),
+                          SizedBox(height: 0), // LESS gap
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                timeText,
+                                showTimeText,
                                 style: GoogleFonts.poppins(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w500,
@@ -195,27 +237,27 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ),
                               Padding(
-                                padding: EdgeInsets.only(bottom: w * 0.018, left: 2),
+                                padding: EdgeInsets.only(bottom: w * 0.008, left: 4),
                                 child: Text(
-                                  ampm,
+                                  showAmpm,
                                   style: GoogleFonts.poppins(
                                     color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: w * 0.045,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: w * 0.056,
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          SizedBox(height: w * 0.015),
-                          // Text(
-                          //   "Next Prayer ${_formatDuration(countdown)}",
-                          //   style: GoogleFonts.poppins(
-                          //     color: Colors.white,
-                          //     fontWeight: FontWeight.w400,
-                          //     fontSize: w * 0.038,
-                          //   ),
-                          // ),
+                          SizedBox(height: 2), // LESS gap
+                          Text(
+                            "Next Prayer ${_formatDuration(showCountdown)}",
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w400,
+                              fontSize: w * 0.044,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -350,8 +392,8 @@ class _HomePageState extends State<HomePage> {
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NearbyMosquesMap())),
                   ),
                 ],
-      ),
-    ],),),),);
+              ),
+            ],),),),);
   }
 
   Widget _featureCard({

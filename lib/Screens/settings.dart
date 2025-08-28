@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:muslim_daily/Screens/topbar.dart';
 
 class Settings extends StatelessWidget {
   @override
@@ -6,9 +7,11 @@ class Settings extends StatelessWidget {
     final Color green = const Color(0xFF158443);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Settings"),
-        backgroundColor: green,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(85),
+        child: IslamicTopBar(
+          title: "Settings",
+        ),
       ),
       backgroundColor: Colors.lightBlue[50],
       body: Padding(
