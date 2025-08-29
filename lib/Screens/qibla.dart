@@ -145,7 +145,7 @@ class _QiblahCompassScreenState extends State<QiblahCompassScreen> {
                                   Transform.rotate(
                                     angle: -angle * (math.pi / 180),
                                     child: Image.asset(
-                                      "assets/compass.png",
+                                      "assets/compass2.png",
                                       width: compassSize,
                                       height: compassSize,
                                       fit: BoxFit.contain,

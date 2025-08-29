@@ -101,7 +101,7 @@ class _ZakatCalculatorScreenState extends State<ZakatCalculatorScreen> {
             children: [
               Image.asset(assetIconPath, width: 16, height: 16, color: color ?? Colors.green[900]),
               const SizedBox(width: 8),
-              Text(label, style: GoogleFonts.poppins(fontSize: 12, color: Colors.green[900], fontWeight: FontWeight.w500)),
+              Text(label, style: GoogleFonts.poppins(fontSize: 11, color: Colors.green[900], fontWeight: FontWeight.w500)),
             ],
           ),
           hintText: hint,

@@ -15,7 +15,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-
 import '../Services/prayerprovider.dart';
 import 'NamazTrackerScreen.dart';
 
@@ -76,14 +75,14 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
         _loadReminderLocation(),
       ]);
       await _loadCities();
-      // --- CHANGED: Use Provider for prayer times
+
+      // --- CHANGED: Use Provider location as default (current location)
       final provider = Provider.of<PrayerProvider>(context, listen: false);
       if (_selectedCity != null) {
         provider.setLocation(_selectedCity!['lat'], _selectedCity!['lng']);
         await provider.fetchPrayers();
-      } else if (_reminderLat != null && _reminderLng != null) {
-        provider.setLocation(_reminderLat!, _reminderLng!);
-        await provider.fetchPrayers();
+      } else {
+        // No need to fetch here: current location prayers already initialized by provider
       }
       setState(() {
         _loading = false;
@@ -131,7 +130,6 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
     return data.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e)).toList();
   }
 
-  // --- NO CHANGE: This timezone/notification logic remains as is, not replaced by provider
   Future<Map<String, dynamic>?> _getTimeZoneDB(double lat, double lng) async {
     try {
       final tzResponse = await http.get(Uri.parse(
@@ -156,9 +154,11 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
     setState(() => _loading = true);
 
     try {
-      LocationPermission permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
         setState(() => _loading = false);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -167,7 +167,6 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
         }
         return;
       }
-
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
@@ -284,7 +283,6 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
     await AwesomeNotifications().cancelAll();
   }
 
-  // Not used for display anymore, but for notification scheduling
   Future<void> _calculatePrayerTimes(double lat, double lng) async {
     setState(() {
       _loading = true;
@@ -439,6 +437,10 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
   }
 
   Widget _zoneRow(double width) {
+    final provider = Provider.of<PrayerProvider>(context);
+    final showZone = _selectedCity != null
+        ? '${_selectedCity!['city']}, ${_selectedCity!['country']}'
+        : provider.currentCity ?? 'Zone: $_selectedZone';
     return Padding(
       padding: EdgeInsets.only(left: width * 0.065, top: 2, right: width * 0.055),
       child: Row(
@@ -447,9 +449,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
           SizedBox(width: 7),
           Expanded(
             child: Text(
-              _selectedCity != null
-                  ? '${_selectedCity!['city']}, ${_selectedCity!['country']}'
-                  : 'Zone: $_selectedZone',
+              showZone,
               style: GoogleFonts.poppins(
                 fontSize: width * 0.036,
                 color: Colors.black87,
@@ -466,10 +466,8 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                 _selectedCity = null;
               });
               await _saveSelectedCity(null);
-              await _getPrayerTimesFromLocation();
-              if (_notificationSwitch) {
-                await _onEnableReminders();
-              }
+              // No need to fetch again, provider already has current location prayers
+              setState(() {});
             },
           )
         ],
@@ -520,7 +518,9 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
     // --- CHANGED: Use provider for display
     final provider = Provider.of<PrayerProvider>(context);
     final showLoading = _loading || provider.loading;
-    final providerPrayers = provider.prayerTimes;
+    final providerPrayers = _selectedCity != null
+        ? provider.prayerTimes
+        : provider.locationPrayerTimes;
 
     return Scaffold(
       backgroundColor: Color(0xFFF8F9FC),
@@ -695,8 +695,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                         fontSize,
                         width * 0.058,
                       );
-                    })
-                        .toList(),
+                    }).toList(),
                   ),
                 ),
               ],

@@ -7,14 +7,12 @@ import 'package:muslim_daily/Screens/dailyhadith.dart';
 import 'package:muslim_daily/Screens/dua_collection.dart';
 import 'package:muslim_daily/Screens/islamicnames.dart';
 import 'package:muslim_daily/Screens/mosques.dart';
-import 'package:muslim_daily/Screens/qibla.dart';
 import 'package:muslim_daily/Screens/settings.dart';
 import 'package:muslim_daily/Screens/tasbeeh.dart';
 import 'package:muslim_daily/Screens/zakatcalculator.dart';
 import 'package:provider/provider.dart';
-
+import 'package:awesome_notifications/awesome_notifications.dart';
 import '../Services/prayerprovider.dart';
-
 
 // Helper to convert TimeOfDay to DateTime for mock/demo
 extension TimeOfDayExtension on TimeOfDay {
@@ -30,43 +28,19 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final String city = "Rawalpindi";
-  final String prayerName = "Asr";
-  late DateTime prayerTime;
-  late DateTime nextPrayerTime;
-  late Duration countdown;
   Timer? _timer;
-
-  // Provider fields
-  String? providerPrayerName;
-  DateTime? providerPrayerTime;
-  Duration? providerCountdown;
 
   @override
   void initState() {
     super.initState();
-    prayerTime = TimeOfDay(hour: 16, minute: 54).toDateTime(DateTime.now());
-    nextPrayerTime = TimeOfDay(hour: 21, minute: 26).toDateTime(DateTime.now());
-    _updateCountdown();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateCountdown());
-  }
-
-  void _updateCountdown() {
-    setState(() {
-      countdown = nextPrayerTime.difference(DateTime.now());
-      if (countdown.isNegative) countdown = Duration.zero;
-
-      // Provider logic (do not change any widget, just get the data)
-      final provider = Provider.of<PrayerProvider>(context, listen: false);
-      if (provider.prayerTimes != null && provider.prayerTimes!.isNotEmpty) {
-        final next = provider.getNextPrayer();
-        if (next != null && next['name'] != null && next['time'] != null) {
-          providerPrayerName = next['name'];
-          providerPrayerTime = next['time'];
-          providerCountdown = next['time'].difference(DateTime.now());
-          if (providerCountdown!.isNegative) providerCountdown = Duration.zero;
-        }
-      }
+    _requestNotificationPermission();
+    // Initialize location and provider only ONCE
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<PrayerProvider>(context, listen: false).initializeWithCurrentLocation();
+    });
+    // Timer for countdown
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (mounted) setState(() {});
     });
   }
 
@@ -74,6 +48,18 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _requestNotificationPermission() async {
+    bool isAllowed = await AwesomeNotifications().isNotificationAllowed();
+    if (!isAllowed) {
+      await AwesomeNotifications().requestPermissionToSendNotifications();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Notification permission requested. Please enable!")),
+        );
+      }
+    }
   }
 
   String _formatDuration(Duration d) {
@@ -87,25 +73,16 @@ class _HomePageState extends State<HomePage> {
     final now = DateTime.now();
     final dateStr = DateFormat('EEE, d MMM').format(now);
 
-    // Provider logic for real-time card (do not change design, just use provider)
+    // Use provider for city and prayer times (always current location)
     final provider = Provider.of<PrayerProvider>(context);
-    String showPrayerName = prayerName;
-    DateTime showPrayerTime = prayerTime;
-    String showTimeText = DateFormat('h:mm').format(prayerTime);
-    String showAmpm = DateFormat('a').format(prayerTime);
-    Duration showCountdown = countdown;
-
-    if (provider.prayerTimes != null && provider.prayerTimes!.isNotEmpty) {
-      final next = provider.getNextPrayer();
-      if (next != null && next['name'] != null && next['time'] != null) {
-        showPrayerName = next['name'];
-        showPrayerTime = next['time'];
-        showTimeText = DateFormat('h:mm').format(showPrayerTime);
-        showAmpm = DateFormat('a').format(showPrayerTime);
-        showCountdown = next['time'].difference(DateTime.now());
-        if (showCountdown.isNegative) showCountdown = Duration.zero;
-      }
-    }
+    final showCity = provider.currentCity ?? "Loading...";
+    final nextPrayer = provider.getNextPrayer(forCurrentLocation: true);
+    final showPrayerName = nextPrayer?['name'] ?? "Asr";
+    final showPrayerTime = nextPrayer?['time'] as DateTime? ??
+        TimeOfDay(hour: 16, minute: 54).toDateTime(DateTime.now());
+    final showTimeText = DateFormat('h:mm').format(showPrayerTime);
+    final showAmpm = DateFormat('a').format(showPrayerTime);
+    final showCountdown = nextPrayer?['countdown'] as Duration? ?? Duration.zero;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -139,7 +116,7 @@ class _HomePageState extends State<HomePage> {
                         child: Row(
                           children: [
                             Text(
-                              city,
+                              showCity,
                               style: GoogleFonts.poppins(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w500,
@@ -156,14 +133,13 @@ class _HomePageState extends State<HomePage> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => Settings()), // Replace with your settings page widget
+                            MaterialPageRoute(builder: (_) => Settings()),
                           );
                         },
                         child: Image.asset(
                           'assets/settings.png',
                           width: w * 0.07,
                           height: w * 0.07,
-                          // Or remove if your icon is colored
                         ),
                       ),
                     ],
@@ -192,11 +168,12 @@ class _HomePageState extends State<HomePage> {
                       borderRadius: BorderRadius.circular(23),
                       child: Image.asset(
                         "assets/prayercard.png",
-                        width: double.infinity,
-                        height: double.infinity,
+                        width: 400,   // set a fixed width
+                        height: 250,  // set a fixed height
                         fit: BoxFit.cover,
                       ),
                     ),
+
                     // Date (top left)
                     Positioned(
                       top: 14, left: 18,
@@ -223,7 +200,7 @@ class _HomePageState extends State<HomePage> {
                               fontSize: w * 0.056,
                             ),
                           ),
-                          SizedBox(height: 0), // LESS gap
+                          SizedBox(height: 0),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.end,
@@ -249,7 +226,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ],
                           ),
-                          SizedBox(height: 2), // LESS gap
+                          SizedBox(height: 2),
                           Text(
                             "Next Prayer ${_formatDuration(showCountdown)}",
                             style: GoogleFonts.poppins(
@@ -264,7 +241,7 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
               ),
-              SizedBox(height: w * 0.07),
+              SizedBox(height: w * 0.03),
               // Daily Hadith Title
               Text(
                 "Daily Hadith",
@@ -281,7 +258,7 @@ class _HomePageState extends State<HomePage> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => HadithPage()), // Yahan apna page name likh do
+                    MaterialPageRoute(builder: (_) => HadithPage()),
                   );
                 },
                 child: Container(
@@ -393,7 +370,11 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ],
               ),
-            ],),),),);
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _featureCard({

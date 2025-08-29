@@ -1,42 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:muslim_daily/Services/prayerservice.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 class PrayerProvider extends ChangeNotifier {
-  // For manual selection (Prayer screen)
   List<PrayerTime>? _prayerTimes;
   double? _lat;
   double? _lng;
+  String? _city;
 
-  // For current location (HomePage)
+  // For current location (default)
   List<PrayerTime>? _locationPrayerTimes;
   double? _currentLat;
   double? _currentLng;
+  String? _currentCity;
 
   bool _loading = false;
   String? _error;
+  bool _initialized = false;
 
   List<PrayerTime>? get prayerTimes => _prayerTimes;
   List<PrayerTime>? get locationPrayerTimes => _locationPrayerTimes;
   bool get loading => _loading;
   String? get error => _error;
+  String? get currentCity => _currentCity;
 
-  /// Set manual location (for Prayer screen)
-  void setLocation(double lat, double lng) {
+  /// Call this ONCE at app start (e.g. HomePage initState) to set up location & city & prayers.
+  Future<void> initializeWithCurrentLocation() async {
+    if (_initialized) return;
+    _initialized = true;
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      _currentCity = "Permission required";
+      notifyListeners();
+      return;
+    }
+    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low);
+    List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+    _currentCity = placemarks.isNotEmpty
+        ? (placemarks.first.locality ?? placemarks.first.administrativeArea ?? "Unknown City")
+        : "Unknown City";
+    _currentLat = position.latitude;
+    _currentLng = position.longitude;
+    await fetchLocationPrayers();
+  }
+
+  /// For manual city selection (Prayer screen)
+  void setLocation(double lat, double lng, {String? city}) {
     _lat = lat;
     _lng = lng;
+    _city = city;
     fetchPrayers();
   }
 
-  /// Set device location (for HomePage, called by LocationProvider)
-  void setCurrentLocation(double lat, double lng) {
+  /// For updating current location (from HomePage, but should use provider.initializeWithCurrentLocation ideally)
+  void updateLocation(double lat, double lng, String city) {
     _currentLat = lat;
     _currentLng = lng;
+    _currentCity = city;
     fetchLocationPrayers();
-  }
-
-  Future<void> initialize() async {
-    // Optionally auto-fetch with default or saved location here.
-    return;
   }
 
   Future<void> fetchPrayers() async {
@@ -71,8 +96,8 @@ class PrayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Returns the next prayer for either current location or manual selection
-  Map<String, dynamic>? getNextPrayer({bool forCurrentLocation = false}) {
+  /// Gets the next prayer for either current location (default) or manual city
+  Map<String, dynamic>? getNextPrayer({bool forCurrentLocation = true}) {
     final now = DateTime.now();
     final list = forCurrentLocation ? _locationPrayerTimes : _prayerTimes;
     if (list == null) return null;
@@ -84,6 +109,15 @@ class PrayerProvider extends ChangeNotifier {
           "countdown": p.time.difference(now),
         };
       }
+    }
+    // If none left today, return tomorrow's first prayer
+    if (list.isNotEmpty) {
+      final firstPrayerTomorrow = list[0].time.add(Duration(days: 1));
+      return {
+        "name": list[0].name,
+        "time": firstPrayerTomorrow,
+        "countdown": firstPrayerTomorrow.difference(now),
+      };
     }
     return null;
   }

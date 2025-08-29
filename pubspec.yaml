@@ -30,6 +30,8 @@ dependencies:
   awesome_notifications: ^0.10.1
   google_fonts: ^4.0.3
   provider: ^6.0.0
+  geocoding: ^2.0.5
+  share_plus: ^11.1.0
 
 
   # Use local version of flutter_native_timezone with namespace fix
@@ -44,7 +46,7 @@ dev_dependencies:
 
 flutter_icons:
   android: true
-  ios: true
+  ios: false
   image_path: "assets/appicon.png"
 
 
@@ -93,6 +95,8 @@ flutter:
     - assets/zakatliability.png
     - assets/tasbeehicon.png
     - assets/zikrcard.png
+    - assets/compass2.png
+    - assets/splash2.png
 
 
 

@@ -80,6 +80,7 @@ class _HadithPageState extends State<HadithPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // <-- Make background white
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(85),
         child: IslamicTopBar(
@@ -89,20 +90,14 @@ class _HadithPageState extends State<HadithPage> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFc8e6c9), Color(0xFF43a047)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
+        color: Colors.white, // <-- White background inside body too
         child: loading
             ? const Center(child: CircularProgressIndicator())
             : hadithData == null
             ? const Center(
           child: Text(
             "No Hadith available.",
-            style: TextStyle(color: Colors.white, fontSize: 18),
+            style: TextStyle(color: Colors.black, fontSize: 18),
           ),
         )
             : SingleChildScrollView(
@@ -114,7 +109,6 @@ class _HadithPageState extends State<HadithPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: buildHadithCard(),
               ),
-              // REMOVE ANY SIZEDBOX OR PADDING BELOW THE CARD!
             ],
           ),
         ),
@@ -203,7 +197,7 @@ class _HadithPageState extends State<HadithPage> {
                 onPressed: () {
                   showDialog(
                     context: context,
-                    builder: (BuildContext dialogContext) {  // 👈 use dialogContext
+                    builder: (BuildContext dialogContext) {
                       return AlertDialog(
                         title: Text(
                           metadata['name'],
@@ -226,7 +220,7 @@ class _HadithPageState extends State<HadithPage> {
                         actions: [
                           TextButton(
                             onPressed: () {
-                              Navigator.of(dialogContext).pop(); // ✅ closes only the dialog
+                              Navigator.of(dialogContext).pop();
                             },
                             child: const Text("Close"),
                           ),
